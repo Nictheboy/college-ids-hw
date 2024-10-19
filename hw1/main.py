@@ -16,6 +16,20 @@ data = pd.read_csv("data.csv", sep=";", encoding="windows-1252")
 print_header("Original Data (first 5 rows)")
 print(data.head())
 
+# Preprocess the data
+data_dropped_duplicates = data.drop_duplicates()
+lines_dropped = len(data) - len(data_dropped_duplicates)
+percentage_dropped = int(lines_dropped / len(data) * 100)
+dropped = data[data.duplicated(keep=False)]
+data = data_dropped_duplicates
+print_header("Preprocess Data")
+print(f"Dropped {lines_dropped} ({percentage_dropped}%) duplicates, such as:")
+print(dropped.head())
+null_counts = data.isnull().sum()
+print(
+    f"Found {null_counts.sum()} null values in the data, so we do not need to drop any."
+)
+
 # Get question topics
 data["Topic Name"] = data.apply(
     lambda row: (
@@ -95,3 +109,27 @@ if print_score_percentage_for_each_topic:
         print_header(f"Student Score Percentages in {topic_name} (first 5 rows)")
         topic_percentages = scores[["Student ID", percentage_column_name]].dropna()
         print(topic_percentages.head())
+
+
+# Calculate max, min, quartiles, mean and std of the scores
+def calculate_statistics(column: pd.Series):
+    return pd.DataFrame(
+        {
+            "Max": column.max(),
+            "Min": column.min(),
+            "Q1": column.quantile(0.25),
+            "Q2": column.quantile(0.5),
+            "Q3": column.quantile(0.75),
+            "Mean": column.mean(),
+            "Std": column.std(),
+        }
+    )
+print_header("Statistics")
+print(
+    calculate_statistics(
+        scores[
+            ["Percentage", "Basic Percentage", "Advanced Percentage"]
+            + ["Percentage of " + topic_name for topic_name in topics["Topic Name"]]
+        ]
+    )
+)
