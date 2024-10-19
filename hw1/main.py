@@ -40,10 +40,13 @@ data["Topic Name"] = data.apply(
     axis=1,
 )
 topics = data.groupby("Topic Name")[["Topic", "Subtopic"]].first().reset_index()
+topics["Question Count"] = (
+    data.drop_duplicates("Question ID")["Topic Name"].value_counts().sort_index().values
+)
 
 # Print the topics
 print_header("Topics")
-print(topics[["Topic", "Subtopic", "Topic Name"]])
+print(topics[["Topic", "Subtopic", "Topic Name", "Question Count"]])
 
 # Assign score to questions
 data["Total Basic Score"] = data["Question Level"].eq("Basic").astype(int)
@@ -124,12 +127,47 @@ def calculate_statistics(column: pd.Series):
             "Std": column.std(),
         }
     )
+
+
 print_header("Statistics")
-print(
-    calculate_statistics(
-        scores[
-            ["Percentage", "Basic Percentage", "Advanced Percentage"]
-            + ["Percentage of " + topic_name for topic_name in topics["Topic Name"]]
-        ]
-    )
-)
+percentage_column_names = ["Percentage", "Basic Percentage", "Advanced Percentage"] + [
+    "Percentage of " + topic_name for topic_name in topics["Topic Name"]
+]
+print(calculate_statistics(scores[percentage_column_names]))
+
+
+# Find outliers
+def find_outliers(df: pd.DataFrame, column: str):
+    Q1 = df[column].quantile(0.25)
+    Q3 = df[column].quantile(0.75)
+    IQR = Q3 - Q1
+    return df[(df[column] < Q1 - 1.5 * IQR) | (df[column] > Q3 + 1.5 * IQR)]
+
+
+print_header("Outliers")
+for column in percentage_column_names:
+    outliers = find_outliers(scores, column)
+    if len(outliers) > 0:
+        print(
+            "--------------------------------------------------------------------------------"
+        )
+        print(f"Outliers in {column}:")
+        Q1 = scores[column].quantile(0.25)
+        Q3 = scores[column].quantile(0.75)
+        IQR = Q3 - Q1
+        all = scores[["Student ID", column]].dropna().sort_values(column)
+        print(f"Q1 = {Q1:.2f}, Q3 = {Q3:.2f}, IQR = {IQR:.2f}, {len(all)} students")
+        if column.startswith("Percentage of "):
+            topic_name = column[len("Percentage of ") :]
+            question_count = topics[topics["Topic Name"] == topic_name][
+                "Question Count"
+            ].iloc[0]
+            print(f"{question_count} questions in {topic_name}")
+        print(outliers[["Student ID", column]].sort_values(column))
+        print("All students:")
+        print(all)
+        print(
+            "--------------------------------------------------------------------------------"
+        )
+    else:
+        print(f"(No outliers in {column}.)")
