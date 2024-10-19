@@ -1,5 +1,14 @@
 import pandas as pd
 import shutil
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
+from sklearn.cluster import KMeans
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.svm import SVC
 
 print_score_percentage_for_each_topic = False
 
@@ -171,3 +180,218 @@ for column in percentage_column_names:
         )
     else:
         print(f"(No outliers in {column}.)")
+
+
+# Find relationship between country and score
+
+# Merge country with scores
+student_and_country = (
+    data.groupby("Student ID")["Student Country"].first().reset_index()
+)
+score_and_country = pd.merge(scores, student_and_country, on="Student ID")
+print_header("Student, Country and Score (first 5 rows)")
+print(score_and_country.head())
+
+# Encode country
+label_encoder = LabelEncoder()
+label_encoder.fit(score_and_country["Student Country"])
+score_and_country["Country Code"] = label_encoder.transform(
+    score_and_country["Student Country"]
+)
+
+# Fill NaN in percentages
+for column in percentage_column_names:
+    score_and_country[column] = score_and_country[column].fillna(
+        scores[column].quantile(0.5)
+    )
+percentages = score_and_country[percentage_column_names]
+
+# Do not need to scale the data because the percentages are already in the same range
+
+# Use PCA to reduce the dimensionality of the data
+pca = PCA(n_components=2)
+pca.fit(percentages[percentage_column_names])
+percentages_pca = pca.transform(percentages[percentage_column_names])
+
+# Use T-SNE to reduce the dimensionality of the data
+tsne = TSNE(n_components=2)
+percentages_tsne = tsne.fit_transform(percentages[percentage_column_names])
+
+
+# Plot the data
+def plot_points_by_country(ndarr, x: str, y: str, title: str, filename: str):
+    plt.figure(figsize=(10, 10))
+    for i, country in enumerate(label_encoder.classes_):
+        country_indices = score_and_country["Country Code"] == i
+        plt.scatter(
+            ndarr[country_indices, 0],
+            ndarr[country_indices, 1],
+            label=country,
+        )
+    plt.xlabel(x)
+    plt.ylabel(y)
+    plt.title(title)
+    plt.legend()
+    plt.savefig("images/" + filename)
+
+
+def plot_curve_by_country(ndarr, y: str, title: str, filename: str):
+    plt.figure(figsize=(10, 10))
+    for i, country in enumerate(label_encoder.classes_):
+        country_indices = score_and_country["Country Code"] == i
+        sns.kdeplot(ndarr[country_indices], label=country)
+    plt.xlabel("Density")
+    plt.ylabel(y)
+    plt.title(title)
+    plt.legend()
+    plt.savefig("images/" + filename)
+
+
+plot_points_by_country(
+    scores[["Total Score", "Percentage"]].to_numpy(),
+    "Total Score",
+    "Percentage",
+    "Student Scores by Total Score and country",
+    "percentage_total.png",
+)
+plot_curve_by_country(
+    percentages["Percentage"],
+    "Percentage",
+    "Density of Student Scores by Country",
+    "percentage_density.png",
+)
+plot_points_by_country(
+    percentages_pca,
+    "Principle Component 1",
+    "Principle Component 2",
+    "PCA of Student Scores by Country",
+    "percentage_pca.png",
+)
+plot_points_by_country(
+    percentages_tsne,
+    "T-SNE Component 1",
+    "T-SNE Component 2",
+    "T-SNE of Student Scores by Country",
+    "percentage_tsne.png",
+)
+
+
+# Calculate correlations
+
+print_header("Correlation of Scores")
+correlation = score_and_country[
+    [
+        "Personal Score",
+        "Personal Basic Score",
+        "Personal Advanced Score",
+        "Country Code",
+    ]
+].corr()
+print(correlation)
+
+print_header("Correlation with Percentage")
+correlation = score_and_country[["Country Code"] + percentage_column_names].corr()
+print(correlation["Percentage"].sort_values(ascending=False))
+
+
+# Grouping students
+
+# Standardize the data
+scaler = StandardScaler()
+scaler_score_and_country = scaler.fit_transform(
+    score_and_country[["Country Code"] + percentage_column_names]
+)
+
+# Use KNN to group students
+k = 5
+kmeans = KMeans(n_clusters=k)
+kmeans.fit(scaler_score_and_country)
+score_and_country["KNN Group"] = kmeans.labels_
+
+
+# Use decision tree to group students
+decision_tree = DecisionTreeClassifier(max_depth=3)
+decision_tree.fit(scaler_score_and_country, score_and_country["KNN Group"])
+score_and_country["Decision Tree Group"] = decision_tree.predict(
+    scaler_score_and_country
+)
+
+# Use SVC to group students
+svc = SVC()
+svc.fit(scaler_score_and_country, score_and_country["KNN Group"])
+score_and_country["SVC Group"] = svc.predict(scaler_score_and_country)
+
+
+# Plot groups
+def plot_groups(
+    ndarr, k: int, group_name: str, x: str, y: str, title: str, filename: str
+):
+    plt.figure(figsize=(10, 10))
+    for i in range(k):
+        group_indices = score_and_country[group_name] == i
+        plt.scatter(
+            ndarr[group_indices, 0],
+            ndarr[group_indices, 1],
+            label=f"Group {i}",
+        )
+    plt.xlabel(x)
+    plt.ylabel(y)
+    plt.title(title)
+    plt.legend()
+    plt.savefig("images/" + filename)
+
+
+plot_groups(
+    percentages_pca,
+    k,
+    "KNN Group",
+    "Principle Component 1",
+    "Principle Component 2",
+    "PCA of Student Scores by KNN Group",
+    "group_knn_pca.png",
+)
+plot_groups(
+    percentages_tsne,
+    k,
+    "KNN Group",
+    "T-SNE Component 1",
+    "T-SNE Component 2",
+    "T-SNE of Student Scores by KNN Group",
+    "group_knn_tsne.png",
+)
+plot_groups(
+    percentages_pca,
+    decision_tree.classes_.size,
+    "Decision Tree Group",
+    "Principle Component 1",
+    "Principle Component 2",
+    "PCA of Student Scores by Decision Tree Group",
+    "group_decision_tree_pca.png",
+)
+plot_groups(
+    percentages_tsne,
+    decision_tree.classes_.size,
+    "Decision Tree Group",
+    "T-SNE Component 1",
+    "T-SNE Component 2",
+    "T-SNE of Student Scores by Decision Tree Group",
+    "group_decision_tree_tsne.png",
+)
+plot_groups(
+    percentages_pca,
+    svc.classes_.size,
+    "SVC Group",
+    "Principle Component 1",
+    "Principle Component 2",
+    "PCA of Student Scores by SVC Group",
+    "group_svc_pca.png",
+)
+plot_groups(
+    percentages_tsne,
+    svc.classes_.size,
+    "SVC Group",
+    "T-SNE Component 1",
+    "T-SNE Component 2",
+    "T-SNE of Student Scores by SVC Group",
+    "group_svc_tsne.png",
+)
