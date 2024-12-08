@@ -1,3 +1,6 @@
+# Convert .srt subtitles to CSV data file
+
+
 import os
 import csv
 

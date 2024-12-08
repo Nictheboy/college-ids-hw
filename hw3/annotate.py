@@ -1,3 +1,9 @@
+# Use transformer to annotate data with sentiment
+
+# Since transformer is much more precise than Naive Bayes, SVM, SVC, Decision Tree and KNN,
+# there's no problem to use it to generate the sentiment annotation of the entire dataset.
+
+
 import pandas as pd
 import csv
 from transformers import pipeline
