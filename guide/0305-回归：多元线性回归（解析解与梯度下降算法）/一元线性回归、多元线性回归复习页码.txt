@@ -1,3 +1,11 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:22283d04d9daf6566c70a38fc51db1a1a5c8a594f7cd6860be5c2bdab9063033
-size 85
+一元线性回归
+5
+293031
+49
+
+多元线性回归
+10
+2021
+37
+484950
+545556

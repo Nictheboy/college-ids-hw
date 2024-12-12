@@ -1,3 +1,1 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:1b43bf3443346d3db3d5d4ee075b88f05570e793f8e2f69140708239e6a3c9c4
-size 96
+https://github.com/marcofavorito/ml-from-scratch/blob/master/notebooks/linear-regression.ipynb

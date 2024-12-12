@@ -1,3 +1,1 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:4b7532ef95d7e21aa14692a4e12f111c42d8efb4e6786251639528fdb28ee723
-size 128
+https://github.com/coding-blocks-archives/machine-learning-online-2018/blob/master/12.%20Support%20Vector%20Machines/SVM.ipynb

@@ -1,3 +1,6 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:3bf045f5bbfbad2cc4592cdf906203cdc81561afbf6330a2097bdd22e2bbb0e4
-size 149
+EMPID,FirstName,LastName,Salary
+1001,Amal,Jose,100000
+1002,Edward,Joe,100001
+1003,Sabitha,Sunny,210000
+1004,John,P,50000
+1005,Mohammad,S,75000

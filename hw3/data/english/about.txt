@@ -1,3 +1,1 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:ad3721d99897093fcb3aba7f2256dfaf35c08be73f54d557ba081c4bc29d1927
-size 79
+Download from https://subdl.org/subtitle/27366/jackie-chan-adventures/english/
