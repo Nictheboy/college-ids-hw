@@ -1,11 +1,12 @@
 import numpy as np
 import pandas as pd
-import torch.nn as nn
 from gymnasium import spaces, Env
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.policies import ActorCriticPolicy
 from vectorize import vectorize
+import os
+import random
 
 
 # =============================
@@ -85,12 +86,24 @@ class YourTradingEnv(Env):
 # 数据准备和训练
 # =============================
 # 创建示例数据
-df = pd.read_csv("data/converted/000001.SZ.csv")
-df["Date Time"] = pd.to_datetime(df["Date Time"])
-del df["Adj Close"]
+
+# 列出所有数据文件
+data_files = os.listdir("data/converted")
+
+# 随机选取若干文件
+random.shuffle(data_files)
+data_files = data_files[:16]
+
+# 读取数据
+df_list = []
+for data_file in data_files:
+    df = pd.read_csv(f"data/converted/{data_file}")
+    df["Date Time"] = pd.to_datetime(df["Date Time"])
+    del df["Adj Close"]
+    df_list.append(df)
 
 # 初始化交易环境
-env = DummyVecEnv([lambda: YourTradingEnv(df)])
+env = DummyVecEnv([lambda: YourTradingEnv(df) for df in df_list])
 
 # 创建 PPO 模型
 # model = PPO("MlpPolicy", env, verbose=1, device="cpu")

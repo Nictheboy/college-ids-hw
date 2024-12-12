@@ -97,7 +97,8 @@ class MyTestStrategy(strategy.BacktestingStrategy):
                 self.__position.exitMarket()
 
 
-def test_one_stock(stock_name, stock_file_name):
+def test_one_stock(stock_file_name):
+    stock_name = stock_file_name
     print(f"Testing {stock_name}...")
     feed = GenericBarFeed(Frequency.DAY, None, None)
     feed.addBarsFromCSV(stock_name, stock_file_name)
@@ -137,5 +138,13 @@ def test_one_stock(stock_name, stock_file_name):
     # Plot the strategy.
     plt.savePlot("judge_result.png")
 
-
-test_one_stock("000001.SZ.csv", "data/converted/000001.SZ.csv")
+test_one_stock("data/standard/stock01.csv")
+test_one_stock("data/standard/stock02.csv")
+test_one_stock("data/standard/stock03.csv")
+test_one_stock("data/standard/stock04.csv")
+test_one_stock("data/standard/stock05.csv")
+test_one_stock("data/standard/stock06.csv")
+test_one_stock("data/standard/stock07.csv")
+test_one_stock("data/standard/stock08.csv")
+test_one_stock("data/standard/stock09.csv")
+test_one_stock("data/standard/stock10.csv")
