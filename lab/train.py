@@ -1,18 +1,18 @@
 import numpy as np
 import pandas as pd
-import torch
 import torch.nn as nn
 from gymnasium import spaces, Env
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.policies import ActorCriticPolicy
+from vectorize import vectorize
 
 
 # =============================
 # 环境定义
 # =============================
 class YourTradingEnv(Env):
-    def __init__(self, df: pd.DataFrame, window_size=10):
+    def __init__(self, df: pd.DataFrame, window_size=34):
         """
         初始化交易环境
         :param df: pd.DataFrame, 包含市场数据 (列为 Open, High, Low, Close, Volume)
@@ -24,7 +24,7 @@ class YourTradingEnv(Env):
         self.current_step = window_size
 
         # 定义状态空间 (最近 window_size 天的 OHLCV 数据)
-        self.observation_space = spaces.Box(low=0, high=1, shape=(window_size, 7), dtype=np.float32)
+        self.observation_space = spaces.Box(low=0, high=1, shape=(window_size, 6), dtype=np.float32)
 
         # 定义动作空间 (-1: 卖出, 0: 持有, 1: 买入)
         self.action_space = spaces.Discrete(3)
@@ -45,8 +45,7 @@ class YourTradingEnv(Env):
 
     def _get_observation(self):
         """获取当前状态 (过去 window_size 天的数据)"""
-        obs = self.df.iloc[self.current_step - self.window_size : self.current_step].values
-        return obs / obs.max(axis=0)  # 数据归一化
+        return vectorize(self.df.iloc[self.current_step - self.window_size : self.current_step])
 
     def step(self, action):
         """执行一个动作"""
@@ -87,15 +86,20 @@ class YourTradingEnv(Env):
 # =============================
 # 创建示例数据
 df = pd.read_csv("data/converted/000001.SZ.csv")
-
-# 将 Date Time 列转换为实数
-df["Date Time"] = pd.to_datetime(df["Date Time"]).astype(int) / 10**9
+df["Date Time"] = pd.to_datetime(df["Date Time"])
+del df["Adj Close"]
 
 # 初始化交易环境
-env = DummyVecEnv([lambda: YourTradingEnv(df, window_size=10)])
+env = DummyVecEnv([lambda: YourTradingEnv(df)])
 
 # 创建 PPO 模型
-model = PPO("MlpPolicy", env, verbose=1, device="cpu")
+# model = PPO("MlpPolicy", env, verbose=1, device="cpu")
+
+# 读取模型
+model = PPO.load("model/ppo_trading", env, verbose=1, device="cpu")
 
 # 训练模型
-model.learn(total_timesteps=100000)
+model.learn(total_timesteps=df.shape[0])
+
+# 保存模型
+model.save("model/ppo_trading")

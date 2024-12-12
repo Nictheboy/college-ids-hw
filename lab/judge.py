@@ -28,15 +28,25 @@ class MyTestStrategy(strategy.BacktestingStrategy):
         self.__prices = feed[instrument].getPriceDataSeries()
         self.__sma1 = ma.SMA(self.__prices, smaPeriod1)
         self.__sma2 = ma.SMA(self.__prices, smaPeriod2)
-
-        self.df = pd.DataFrame({"Open": [], "High": [], "Low": [], "Close": [], "Volume": []})
-        print("df", self.df.head())
+        self.df = pd.DataFrame(
+            {"Date Time": [], "Open": [], "High": [], "Low": [], "Close": [], "Volume": []}
+        )
 
     def getSMA1(self):
         return self.__sma1
 
     def getSMA2(self):
         return self.__sma2
+
+    def onEnterCanceled(self, position):
+        self.__position = None
+
+    def onExitOk(self, position):
+        self.__position = None
+
+    def onExitCanceled(self, position):
+        # If the exit was canceled, re-submit it.
+        self.__position.exitMarket()
 
     def onBars(self, bars):
         bar = bars[self.__instrument]
@@ -51,31 +61,28 @@ class MyTestStrategy(strategy.BacktestingStrategy):
         action = 0
         row_count = self.df.shape[0]
         if row_count == 0:
-            one_row_list = [_open, _high, _low, _close, _volume]
+            one_row_list = [_datetime, _open, _high, _low, _close, _volume]
             one_row_array = np.asarray(one_row_list)
-            one_row_array = one_row_array.reshape(1, 5)
+            one_row_array = one_row_array.reshape(1, 6)
             self.df = pd.DataFrame(
-                one_row_array, index=[_datetime], columns=["Open", "High", "Low", "Close", "Volume"]
+                one_row_array,
+                index=[_datetime],
+                columns=["Date Time", "Open", "High", "Low", "Close", "Volume"],
             )
-            print("self.df + one row", self.df.head())
         else:
-            one_row_list = [_open, _high, _low, _close, _volume]
+            one_row_list = [_datetime, _open, _high, _low, _close, _volume]
             one_row_array = np.asarray(one_row_list)
-            one_row_array = one_row_array.reshape(1, 5)
+            one_row_array = one_row_array.reshape(1, 6)
             df_one = pd.DataFrame(
-                one_row_array, index=[_datetime], columns=["Open", "High", "Low", "Close", "Volume"]
+                one_row_array,
+                index=[_datetime],
+                columns=["Date Time", "Open", "High", "Low", "Close", "Volume"],
             )
             self.df = pd.concat([self.df, df_one])
-            if self.df.shape[0] == 6:
-                print("self.df", self.df.head())
             if self.df.shape[0] >= 34:
                 df = self.df
                 df_test = df.iloc[-34:, :].copy()
                 action = predict(df_test)
-                if action == 1:
-                    print("BUY Signal =", action)
-                if action == -1:
-                    print("SelL Signal =", action)
         if action == 0:
             pass
         elif action == 1:  # 如果没有头寸，买入
@@ -83,16 +90,15 @@ class MyTestStrategy(strategy.BacktestingStrategy):
                 shares = int(self.getBroker().getCash() * 0.9 / bars[self.__instrument].getPrice())
                 # Enter a buy market order. The order is good till canceled.
                 self.__position = self.enterLong(self.__instrument, shares, True)
-                print("BUY Action")
         elif action == -1:  # 如果有头寸，卖出
             if self.__position is None:
                 pass
             elif not self.__position.exitActive():
                 self.__position.exitMarket()
-                print("SELL Action")
 
 
 def test_one_stock(stock_name, stock_file_name):
+    print(f"Testing {stock_name}...")
     feed = GenericBarFeed(Frequency.DAY, None, None)
     feed.addBarsFromCSV(stock_name, stock_file_name)
     smaPeriod1 = 13
