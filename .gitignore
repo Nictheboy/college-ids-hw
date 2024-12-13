@@ -163,6 +163,3 @@ cython_debug/
 
 # VS Code Config
 .vscode/
-
-# Generate graph
-lab/judge_result.png

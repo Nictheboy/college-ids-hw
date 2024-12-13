@@ -1,151 +1,31 @@
-import random
 import pandas as pd
-import numpy as np
 import torch
 import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader
-from sklearn.preprocessing import MinMaxScaler
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 import os
 
-
-data_dim = 6
-
-
-# Define a custom dataset
-class StockDataset(Dataset):
-    def __init__(self, filename, sequence_length, device, percent=1.0):
-        self.data, self.scaler = self.preprocess_data(pd.read_csv(filename))
-        self.sequence_length = sequence_length
-        self.device = device
-        self.percent = percent
-        self.prepare_data()
-
-    # Data preparation
-    def preprocess_data(self, df):
-        del df["Adj Close"]
-
-        # Normalize date
-        df["Date Time"] = pd.to_datetime(df["Date Time"])
-        df = df.sort_values("Date Time")
-        date_begin = pd.to_datetime("2010-01-04 00:00:00")
-        date_end = pd.to_datetime("2022-12-30 00:00:00")
-        df["Date Time"] = (df["Date Time"] - date_begin) / (date_end - date_begin)
-
-        scaler = MinMaxScaler()
-        scaled_data = scaler.fit_transform(df)
-        return scaled_data, scaler
-
-    def prepare_data(self):
-        x_tensors = []
-        y_tensors = []
-        random_indexes = random.sample(range(self.original_len()), len(self))
-        for i in range(len(self)):
-            x_tensor, y_tensor = self.getitem(random_indexes[i])
-            x_tensors.append(x_tensor)
-            y_tensors.append(y_tensor)
-        self.x_tensors = x_tensors
-        self.y_tensors = y_tensors
-
-    def getitem(self, idx):
-        x = self.data[idx : idx + self.sequence_length]
-        y = (
-            1
-            if self.data[idx + self.sequence_length + 1, 1]
-            > self.data[idx + self.sequence_length, 1]
-            else 0
-        )
-        x_tensor = torch.tensor(x, dtype=torch.float32, device=self.device)
-        y_tensor = torch.tensor(y, dtype=torch.float32, device=self.device)
-        return x_tensor, y_tensor
-
-    def original_len(self):
-        return len(self.data) - self.sequence_length - 1
-
-    def __len__(self):
-        return int(self.original_len() * self.percent)
-
-    def __getitem__(self, idx):
-        return self.x_tensors[idx], self.y_tensors[idx]
-
-
-# Define the Transformer model
-class TransformerModel(nn.Module):
-    def __init__(self, input_dim, d_model, nhead, num_layers, dim_feedforward):
-        super(TransformerModel, self).__init__()
-        self.input_projection = nn.Linear(input_dim, d_model)
-        self.positional_encoding = nn.Parameter(torch.zeros(1, 100, d_model))
-        self.transformer = nn.Transformer(
-            d_model=d_model,
-            nhead=nhead,
-            num_encoder_layers=num_layers,
-            num_decoder_layers=1,
-            dim_feedforward=dim_feedforward,
-            batch_first=True,
-        )
-        self.fc = nn.Linear(d_model, 1)
-
-    def forward(self, x):
-        x = self.input_projection(x) + self.positional_encoding[:, : x.size(1), :]
-        x = self.transformer(x, x)
-        x = x[:, -1, :]  # Use the last time step's output
-        x = self.fc(x)
-        return torch.sigmoid(x).squeeze()
+from model import create_model, load_model, device
+from dataset import StockDataset
 
 
 # Hyperparameters
-sequence_length = 100
-batch_size = 32
-d_model = 256
-nhead = 8
-num_layers = 4
-dim_feedforward = 4096
+sequence_length = 34
+batch_size = 128
 epochs = 1
 lr = 0.001
-
-# Choose device
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print("Device: ", device)
-
-
-def create_model(model_path: str):
-    model = TransformerModel(
-        input_dim=data_dim,
-        d_model=d_model,
-        nhead=nhead,
-        num_layers=num_layers,
-        dim_feedforward=dim_feedforward,
-    )
-    torch.save(model.state_dict(), model_path)
-
-
-def load_model(model_path: str):
-    # Initialize model
-    model = TransformerModel(
-        input_dim=data_dim,
-        d_model=d_model,
-        nhead=nhead,
-        num_layers=num_layers,
-        dim_feedforward=dim_feedforward,
-    )
-    model.load_state_dict(torch.load(model_path, weights_only=True))
-    model.to(device)
-    criterion = nn.BCELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    return model, criterion, optimizer
 
 
 def load_dataset(data_names: list[str], percent=1.0):
     datasets = []
     for data_name in tqdm(data_names, leave=False, desc="Loading datasets"):
-        dataset = StockDataset(
-            f"data/converted/{data_name}", sequence_length, device=device, percent=percent
-        )
+        df = pd.read_csv(f"data/converted/{data_name}")
+        dataset = StockDataset(df, sequence_length, device=device, percent=percent)
         datasets.append(dataset)
     return torch.utils.data.ConcatDataset(datasets)
 
 
-def train_model(model, criterion, optimizer, dataset):
+def train_model(model, dataset):
     # Create dataloaders
     test_size = int(min(10000, 0.20 * len(dataset)))
     train_size = len(dataset) - test_size
@@ -156,23 +36,27 @@ def train_model(model, criterion, optimizer, dataset):
 
     # Evaluation
     model.eval()
-    correct = 0
-    total = 0
+    correct_before = 0
+    total_before = 0
     with torch.no_grad():
         for x_batch, y_batch in test_loader:
             outputs = model(x_batch)
             predictions = (outputs > 0.5).float()
-            correct += (predictions == y_batch).sum().item()
-            total += y_batch.size(0)
+            correct_before += (predictions == y_batch).sum().item()
+            total_before += y_batch.size(0)
 
-    print(f"Accuracy Before: {correct/total:.2%}")
+    print(f"Accuracy Before: {correct_before/total_before:.2%}")
 
     # Training loop
+    criterion = nn.BCELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     print("Training...")
     for epoch in range(epochs):
         model.train()
         total_loss = 0
-        for x_batch, y_batch in train_loader:
+        for x_batch, y_batch in tqdm(train_loader, leave=False, desc=f"Epoch {epoch+1}/{epochs}"):
+            if x_batch.size(0) == 0:
+                continue
             optimizer.zero_grad()
             outputs = model(x_batch)
             loss = criterion(outputs, y_batch)
@@ -181,33 +65,36 @@ def train_model(model, criterion, optimizer, dataset):
             total_loss += loss.item()
         print(f"Epoch {epoch+1}/{epochs}, Loss: {total_loss/len(train_loader):.4f}")
 
+    # Save
+    print("Saving model...")
+    torch.save(model.state_dict(), model_path)
+
     # Evaluation
     model.eval()
-    correct = 0
-    total = 0
+    correct_after = 0
+    total_after = 0
     with torch.no_grad():
         for x_batch, y_batch in test_loader:
             outputs = model(x_batch)
             predictions = (outputs > 0.5).float()
-            correct += (predictions == y_batch).sum().item()
-            total += y_batch.size(0)
+            correct_after += (predictions == y_batch).sum().item()
+            total_after += y_batch.size(0)
 
-    print(f"Accuracy After: {correct/total:.2%}")
+    print(f"Accuracy After: {correct_after/total_after:.2%}")
 
     # Write log
     log_path = "log/transformer-train.log"
     datetime = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
     with open(log_path, "a") as f:
-        f.write(f"{datetime}, {correct/total:.2%}, {total_loss/len(train_loader):.4f}\n")
+        f.write(
+            f"{datetime}, {correct_before/total_before:.2%}, {correct_after/total_after:.2%}, {total_loss/len(train_loader):.4f}\n"
+        )
 
 
 model_path = "model/transformer.bin"
 if not os.path.exists(model_path):
     create_model(model_path)
-model, criterion, optimizer = load_model(model_path)
+model = load_model(model_path)
 files = os.listdir("data/converted")
-while True:
-    # Do loading each time, because the dataset constructing includes random sampling
-    dataset = load_dataset(files, percent=0.1)
-    train_model(model, criterion, optimizer, dataset)
-    print()
+dataset = load_dataset(files, percent=0.01)
+train_model(model, dataset)
