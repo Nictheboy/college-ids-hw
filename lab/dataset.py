@@ -1,6 +1,7 @@
 from torch.utils.data import Dataset
 import torch
 import pandas as pd
+import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 import random
 
@@ -45,21 +46,18 @@ class StockDataset(Dataset):
 
     def getitem(self, idx):
         x = self.data[idx : idx + self.sequence_length]
-        if x.shape[0] != self.sequence_length:
-            print("Warning: sequence length not enough")
+        tomorrow = self.data[idx + self.sequence_length, 1]
+        after_a_week = self.data[idx + self.sequence_length + 7, 1]
+        if x.shape[0] != self.sequence_length or tomorrow == 0:
             return self.getitem(random.randint(0, len(self) - 1))
-        y = (
-            1
-            if self.data[idx + self.sequence_length + 1, 1]
-            > self.data[idx + self.sequence_length, 1]
-            else 0
-        )
+        y = (after_a_week - tomorrow) / tomorrow
         x_tensor = torch.tensor(x, dtype=torch.float32, device=self.device)
         y_tensor = torch.tensor(y, dtype=torch.float32, device=self.device)
+        y_tensor = torch.sigmoid(y_tensor)
         return x_tensor, y_tensor
 
     def original_len(self):
-        return len(self.data) - self.sequence_length - 1
+        return len(self.data) - self.sequence_length - 7
 
     def __len__(self):
         return int(self.original_len() * self.percent)

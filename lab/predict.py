@@ -11,10 +11,9 @@ class Predictor:
         # 加载训练好的模型
         self.model = load_model("model/transformer.bin")
         self.model.eval()
-
-        self.hold = False
-        self.y_sum = 0
-        self.y_count = 0
+        self.hold = True
+        self.y_list_7 = np.array([])
+        self.y_list_30 = np.array([])
 
     def predict(self, df: DataFrame) -> int:
         # Normalize date
@@ -25,11 +24,16 @@ class Predictor:
         df["Date Time"] = (df["Date Time"] - date_begin) / (date_end - date_begin)
 
         scaler = MinMaxScaler()
-        x = np.array([scaler.fit_transform(df)])
+        x = np.array([scaler.fit_transform(df[-100:])])
         y = self.model(torch.tensor(x, dtype=torch.float32, device=device)).item()
-        self.y_sum += y
-        self.y_count += 1
-        hold_next = y > self.y_sum / self.y_count
+        self.y_list_7 = np.append(self.y_list_7, y)
+        self.y_list_30 = np.append(self.y_list_30, y)
+        if len(self.y_list_7) > 7:
+            self.y_list_7 = self.y_list_7[1:]
+        if len(self.y_list_30) > 30:
+            self.y_list_30 = self.y_list_30[1:]
+        hold_next = y > np.mean(self.y_list_30)
+        # hold_next = y > 0.5 or np.mean(self.y_list_7) > 0.5 or np.mean(self.y_list_30) > 0.5
         if self.hold == hold_next:
             ret = 0
         elif self.hold:

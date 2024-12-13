@@ -12,7 +12,7 @@ from dataset import StockDataset
 # Hyperparameters
 sequence_length = 34
 batch_size = 128
-epochs = 1
+epochs = 5
 lr = 0.001
 
 
@@ -42,7 +42,7 @@ def train_model(model, dataset):
         for x_batch, y_batch in test_loader:
             outputs = model(x_batch)
             predictions = (outputs > 0.5).float()
-            correct_before += (predictions == y_batch).sum().item()
+            correct_before += (torch.abs(predictions - y_batch) < y_batch * 0.1).sum().item()
             total_before += y_batch.size(0)
 
     print(f"Accuracy Before: {correct_before/total_before:.2%}")
@@ -50,7 +50,6 @@ def train_model(model, dataset):
     # Training loop
     criterion = nn.BCELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    print("Training...")
     for epoch in range(epochs):
         model.train()
         total_loss = 0
@@ -66,7 +65,6 @@ def train_model(model, dataset):
         print(f"Epoch {epoch+1}/{epochs}, Loss: {total_loss/len(train_loader):.4f}")
 
     # Save
-    print("Saving model...")
     torch.save(model.state_dict(), model_path)
 
     # Evaluation
@@ -77,7 +75,7 @@ def train_model(model, dataset):
         for x_batch, y_batch in test_loader:
             outputs = model(x_batch)
             predictions = (outputs > 0.5).float()
-            correct_after += (predictions == y_batch).sum().item()
+            correct_after += (torch.abs(predictions - y_batch) < y_batch * 0.1).sum().item()
             total_after += y_batch.size(0)
 
     print(f"Accuracy After: {correct_after/total_after:.2%}")
@@ -98,3 +96,4 @@ model = load_model(model_path)
 files = os.listdir("data/converted")
 dataset = load_dataset(files, percent=0.01)
 train_model(model, dataset)
+print()

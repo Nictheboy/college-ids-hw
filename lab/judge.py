@@ -82,7 +82,8 @@ class MyTestStrategy(strategy.BacktestingStrategy):
             self.df = pd.concat([self.df, df_one])
             if self.df.shape[0] >= 34:
                 df = self.df
-                df_test = df.iloc[-34:, :].copy()
+                # df_test = df.iloc[-34:, :].copy()
+                df_test = df.copy()
                 action = self.predictor.predict(df_test)
         if action == 0:
             pass
