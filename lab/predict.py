@@ -11,7 +11,6 @@ class Predictor:
         # 加载训练好的模型
         self.model = load_model("model/transformer.bin")
         self.model.eval()
-        self.hold = True
         self.y_list_7 = np.array([])
         self.y_list_30 = np.array([])
 
@@ -34,11 +33,8 @@ class Predictor:
             self.y_list_30 = self.y_list_30[1:]
         hold_next = y > np.mean(self.y_list_30)
         # hold_next = y > 0.5 or np.mean(self.y_list_7) > 0.5 or np.mean(self.y_list_30) > 0.5
-        if self.hold == hold_next:
-            ret = 0
-        elif self.hold:
-            ret = -1
-        else:
+        if hold_next:
             ret = 1
-        self.hold = hold_next
+        else:
+            ret = -1
         return ret
