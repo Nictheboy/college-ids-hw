@@ -13,7 +13,7 @@ from pyalgotrade import plotter
 import pandas as pd
 import numpy as np
 import matplotlib as mpl
-from predict import predict
+from predict import Predictor
 
 mpl.style.use("classic")
 
@@ -31,6 +31,7 @@ class MyTestStrategy(strategy.BacktestingStrategy):
         self.df = pd.DataFrame(
             {"Date Time": [], "Open": [], "High": [], "Low": [], "Close": [], "Volume": []}
         )
+        self.predictor = Predictor()
 
     def getSMA1(self):
         return self.__sma1
@@ -82,7 +83,7 @@ class MyTestStrategy(strategy.BacktestingStrategy):
             if self.df.shape[0] >= 34:
                 df = self.df
                 df_test = df.iloc[-34:, :].copy()
-                action = predict(df_test)
+                action = self.predictor.predict(df_test)
         if action == 0:
             pass
         elif action == 1:  # 如果没有头寸，买入
