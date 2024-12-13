@@ -31,8 +31,8 @@ data_dim = 6
 sequence_length = 100
 d_model = 256
 nhead = 8
-num_layers = 4
-dim_feedforward = 4096
+num_layers = 64
+dim_feedforward = 1024
 
 # Choose device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

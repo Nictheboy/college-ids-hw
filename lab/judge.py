@@ -141,13 +141,13 @@ def test_one_stock(stock_file_name, png_path):
     plt.savePlot(png_path)
 
 
-test_one_stock("data/standard/stock01.csv", "log/judge/stock01.png")
-test_one_stock("data/standard/stock02.csv", "log/judge/stock02.png")
-test_one_stock("data/standard/stock03.csv", "log/judge/stock03.png")
-test_one_stock("data/standard/stock04.csv", "log/judge/stock04.png")
-test_one_stock("data/standard/stock05.csv", "log/judge/stock05.png")
 test_one_stock("data/standard/stock06.csv", "log/judge/stock06.png")
 test_one_stock("data/standard/stock07.csv", "log/judge/stock07.png")
 test_one_stock("data/standard/stock08.csv", "log/judge/stock08.png")
 test_one_stock("data/standard/stock09.csv", "log/judge/stock09.png")
 test_one_stock("data/standard/stock10.csv", "log/judge/stock10.png")
+test_one_stock("data/standard/stock01.csv", "log/judge/stock01.png")
+test_one_stock("data/standard/stock02.csv", "log/judge/stock02.png")
+test_one_stock("data/standard/stock03.csv", "log/judge/stock03.png")
+test_one_stock("data/standard/stock04.csv", "log/judge/stock04.png")
+test_one_stock("data/standard/stock05.csv", "log/judge/stock05.png")
