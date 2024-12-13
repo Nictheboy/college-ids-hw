@@ -1,118 +1,159 @@
-import numpy as np
 import pandas as pd
-from gymnasium import spaces, Env
-from stable_baselines3 import PPO
-from stable_baselines3.common.vec_env import DummyVecEnv
-from stable_baselines3.common.policies import ActorCriticPolicy
-from vectorize import vectorize
+import numpy as np
+import torch
+import torch.nn as nn
+from torch.utils.data import Dataset, DataLoader
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
 import os
-import random
 
 
-# =============================
-# 环境定义
-# =============================
-class YourTradingEnv(Env):
-    def __init__(self, df: pd.DataFrame, window_size=34):
-        """
-        初始化交易环境
-        :param df: pd.DataFrame, 包含市场数据 (列为 Open, High, Low, Close, Volume)
-        :param window_size: 用于构建状态的时间窗口大小
-        """
-        super(YourTradingEnv, self).__init__()
-        self.df = df
-        self.window_size = window_size
-        self.current_step = window_size
-
-        # 定义状态空间 (最近 window_size 天的 OHLCV 数据)
-        self.observation_space = spaces.Box(low=0, high=1, shape=(window_size, 6), dtype=np.float32)
-
-        # 定义动作空间 (-1: 卖出, 0: 持有, 1: 买入)
-        self.action_space = spaces.Discrete(3)
-
-        # 初始化账户状态
-        self.initial_balance = 10000
-        self.balance = self.initial_balance
-        self.shares_held = 0
-        self.total_reward = 0
-
-    def reset(self, **kwargs):
-        """重置环境"""
-        self.current_step = self.window_size
-        self.balance = self.initial_balance
-        self.shares_held = 0
-        self.total_reward = 0
-        return self._get_observation(), {}
-
-    def _get_observation(self):
-        """获取当前状态 (过去 window_size 天的数据)"""
-        return vectorize(self.df.iloc[self.current_step - self.window_size : self.current_step])
-
-    def step(self, action):
-        """执行一个动作"""
-        done = False
-        reward = 0
-
-        # 获取当前开盘价
-        current_open = self.df.iloc[self.current_step]["Open"]
-
-        # 执行买入动作
-        if action == 2:  # 买入
-            if self.balance >= current_open:
-                self.shares_held += 1
-                self.balance -= current_open
-        # 执行卖出动作
-        elif action == 0:  # 卖出
-            if self.shares_held > 0:
-                self.shares_held -= 1
-                self.balance += current_open
-
-        # 计算奖励 (账户总价值的变化)
-        next_close = self.df.iloc[self.current_step]["Close"]
-        portfolio_value = self.balance + self.shares_held * next_close
-        reward = portfolio_value - (self.balance + self.shares_held * current_open)
-        self.total_reward += reward
-
-        # 移动到下一个时间步
-        self.current_step += 1
-        if self.current_step >= len(self.df):
-            done = True
-
-        # 返回新的状态、奖励和完成标志
-        return self._get_observation(), reward, done, done, {}
+data_dim = 6
 
 
-# =============================
-# 数据准备和训练
-# =============================
-# 创建示例数据
+# Define a custom dataset
+class StockDataset(Dataset):
+    def __init__(self, filename, sequence_length, device):
+        self.data, self.scaler = StockDataset.preprocess_data(pd.read_csv(filename))
+        self.sequence_length = sequence_length
+        self.device = device
 
-# 列出所有数据文件
-data_files = os.listdir("data/converted")
+    # Data preparation
+    def preprocess_data(df):
+        del df["Adj Close"]
 
-# 随机选取若干文件
-random.shuffle(data_files)
-data_files = data_files[:16]
+        # Normalize date
+        df["Date Time"] = pd.to_datetime(df["Date Time"])
+        df = df.sort_values("Date Time")
+        date_begin = pd.to_datetime("2010-01-04 00:00:00")
+        date_end = pd.to_datetime("2022-12-30 00:00:00")
+        df["Date Time"] = (df["Date Time"] - date_begin) / (date_end - date_begin)
 
-# 读取数据
-df_list = []
-for data_file in data_files:
-    df = pd.read_csv(f"data/converted/{data_file}")
-    df["Date Time"] = pd.to_datetime(df["Date Time"])
-    del df["Adj Close"]
-    df_list.append(df)
+        scaler = MinMaxScaler()
+        scaled_data = scaler.fit_transform(df)
+        return scaled_data, scaler
 
-# 初始化交易环境
-env = DummyVecEnv([lambda: YourTradingEnv(df) for df in df_list])
+    def __len__(self):
+        return len(self.data) - self.sequence_length - 1
 
-# 创建 PPO 模型
-# model = PPO("MlpPolicy", env, verbose=1, device="cpu")
+    def __getitem__(self, idx):
+        x = self.data[idx : idx + self.sequence_length]
+        y = (
+            1
+            if self.data[idx + self.sequence_length + 1, -2]
+            > self.data[idx + self.sequence_length, -2]
+            else 0
+        )
+        x_tensor = torch.tensor(x, dtype=torch.float32, device=self.device)
+        y_tensor = torch.tensor(y, dtype=torch.float32, device=self.device)
+        return x_tensor, y_tensor
 
-# 读取模型
-model = PPO.load("model/ppo_trading", env, verbose=1, device="cpu")
 
-# 训练模型
-model.learn(total_timesteps=df.shape[0])
+# Define the Transformer model
+class TransformerModel(nn.Module):
+    def __init__(self, input_dim, d_model, nhead, num_layers, dim_feedforward):
+        super(TransformerModel, self).__init__()
+        self.input_projection = nn.Linear(input_dim, d_model)
+        self.positional_encoding = nn.Parameter(torch.zeros(1, 100, d_model))
+        self.transformer = nn.Transformer(
+            d_model=d_model,
+            nhead=nhead,
+            num_encoder_layers=num_layers,
+            num_decoder_layers=1,
+            dim_feedforward=dim_feedforward,
+            batch_first=True,
+        )
+        self.fc = nn.Linear(d_model, 1)
 
-# 保存模型
-model.save("model/ppo_trading")
+    def forward(self, x):
+        x = self.input_projection(x) + self.positional_encoding[:, : x.size(1), :]
+        x = self.transformer(x, x)
+        x = x[:, -1, :]  # Use the last time step's output
+        x = self.fc(x)
+        return torch.sigmoid(x).squeeze()
+
+
+# Hyperparameters
+sequence_length = 30
+batch_size = 64
+d_model = 1024
+nhead = 32
+num_layers = 32
+dim_feedforward = 128
+epochs = 10
+lr = 0.001
+
+# Choose device
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print("Device: ", device)
+
+
+def create_model(filename: str):
+    model = TransformerModel(
+        input_dim=data_dim,
+        d_model=d_model,
+        nhead=nhead,
+        num_layers=num_layers,
+        dim_feedforward=dim_feedforward,
+    )
+    torch.save(model.state_dict(), filename)
+
+
+def train_model(filename: str):
+    # Create dataset and dataloaders
+    dataset = StockDataset("data/converted/000001.SZ.csv", sequence_length, device=device)
+    train_size = int(0.8 * len(dataset))
+    test_size = len(dataset) - train_size
+    train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+    # Initialize model
+    model = TransformerModel(
+        input_dim=data_dim,
+        d_model=d_model,
+        nhead=nhead,
+        num_layers=num_layers,
+        dim_feedforward=dim_feedforward,
+    )
+    model.load_state_dict(torch.load(filename, weights_only=True))
+    model.to(device)
+    criterion = nn.BCELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
+    # Training loop
+    for epoch in range(epochs):
+        model.train()
+        total_loss = 0
+        for x_batch, y_batch in train_loader:
+            optimizer.zero_grad()
+            outputs = model(x_batch)
+            loss = criterion(outputs, y_batch)
+            loss.backward()
+            optimizer.step()
+            total_loss += loss.item()
+        print(f"Epoch {epoch+1}/{epochs}, Loss: {total_loss/len(train_loader):.4f}")
+
+    # Evaluation
+    model.eval()
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for x_batch, y_batch in test_loader:
+            outputs = model(x_batch)
+            predictions = (outputs > 0.5).float()
+            correct += (predictions == y_batch).sum().item()
+            total += y_batch.size(0)
+
+    print(f"Accuracy: {correct/total:.2%}")
+
+
+model_path = "model/transformer.bin"
+if not os.path.exists(model_path):
+    create_model(model_path)
+files = os.listdir("data/converted")
+while True:
+    random_file = files[np.random.randint(len(files))]
+    print("Training on", random_file)
+    train_model(model_path)
+    print()

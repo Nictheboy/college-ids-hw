@@ -138,6 +138,7 @@ def test_one_stock(stock_file_name):
     # Plot the strategy.
     plt.savePlot("judge_result.png")
 
+
 test_one_stock("data/standard/stock01.csv")
 test_one_stock("data/standard/stock02.csv")
 test_one_stock("data/standard/stock03.csv")

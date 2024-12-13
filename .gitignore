@@ -166,3 +166,6 @@ cython_debug/
 
 # Generate graph
 lab/judge_result.png
+
+# Transformer Model
+lab/model/transformer.bin
