@@ -1,37 +1,19 @@
 from torch.utils.data import Dataset
 import torch
-import pandas as pd
-import numpy as np
-from sklearn.preprocessing import MinMaxScaler
 import random
+from preprocess import preprocess
 
-data_dim = 6
+data_dim = 5
 
 
 # Define a custom dataset
 class StockDataset(Dataset):
     def __init__(self, df, sequence_length, device, percent=1.0):
-        self.data, self.scaler = self.preprocess_data(df)
+        self.data = preprocess(df)
         self.sequence_length = sequence_length
         self.device = device
         self.percent = percent
         self.prepare_data()
-
-    # Data preparation
-    def preprocess_data(self, df):
-        if "Adj Close" in df.columns:
-            del df["Adj Close"]
-
-        # Normalize date
-        df["Date Time"] = pd.to_datetime(df["Date Time"])
-        df = df.sort_values("Date Time")
-        date_begin = pd.to_datetime("2010-01-04 00:00:00")
-        date_end = pd.to_datetime("2022-12-30 00:00:00")
-        df["Date Time"] = (df["Date Time"] - date_begin) / (date_end - date_begin)
-
-        scaler = MinMaxScaler()
-        scaled_data = scaler.fit_transform(df)
-        return scaled_data, scaler
 
     def prepare_data(self):
         x_tensors = []
@@ -46,18 +28,16 @@ class StockDataset(Dataset):
 
     def getitem(self, idx):
         x = self.data[idx : idx + self.sequence_length]
-        tomorrow = self.data[idx + self.sequence_length, 1]
-        after_a_week = self.data[idx + self.sequence_length + 7, 1]
-        if x.shape[0] != self.sequence_length or tomorrow == 0:
+        if x.shape[0] != self.sequence_length:
             return self.getitem(random.randint(0, len(self) - 1))
-        y = (after_a_week - tomorrow) / tomorrow
+        y = self.data[idx + self.sequence_length, 1]
         x_tensor = torch.tensor(x, dtype=torch.float32, device=self.device)
         y_tensor = torch.tensor(y, dtype=torch.float32, device=self.device)
-        y_tensor = torch.sigmoid(y_tensor)
+        y_tensor = torch.sigmoid(1 - torch.exp(-20 * y_tensor))
         return x_tensor, y_tensor
 
     def original_len(self):
-        return len(self.data) - self.sequence_length - 7
+        return len(self.data) - self.sequence_length - 2
 
     def __len__(self):
         return int(self.original_len() * self.percent)

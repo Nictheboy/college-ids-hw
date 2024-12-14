@@ -6,15 +6,14 @@ from tqdm import tqdm
 import os
 import random
 
-from model import create_model, load_model, device
+from model import create_model, load_model, device, sequence_length
 from dataset import StockDataset
 
 
 # Hyperparameters
-sequence_length = 34
-batch_size = 128
-epochs = 1
-lr = 0.005
+batch_size = 512
+epochs = 10
+lr = 0.001
 
 
 def load_dataset(data_names: list[str], percent=1.0):
@@ -27,43 +26,69 @@ def load_dataset(data_names: list[str], percent=1.0):
 
 
 def train_model(model, dataset):
+    avg = torch.mean(torch.tensor([y for _, y in dataset]))
+    std = torch.std(torch.tensor([y for _, y in dataset]))
+    print(f"Average: {avg:.20f}, Std: {std:.20f}")
     # Create dataloaders
-    train_size = len(dataset)
-    print(f"Train size: {train_size}")
-    train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    test_size = len(dataset) // 10
+    train_size = len(dataset) - test_size
+    print(f"Train size: {train_size}, Test size: {test_size}")
+    train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     # Training loop
     criterion = nn.BCELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     for epoch in range(epochs):
         model.train()
-        total_loss = 0
-        for x_batch, y_batch in tqdm(train_loader, leave=False, desc=f"Epoch {epoch+1}/{epochs}"):
-            if x_batch.size(0) == 0:
-                continue
+        for x_batch, y_batch in tqdm(
+            train_loader, leave=False, desc=f"Epoch {epoch+1:02}/{epochs}"
+        ):
             optimizer.zero_grad()
             outputs = model(x_batch)
+            if x_batch.size(0) == 1:
+                outputs = outputs.unsqueeze(0)
             loss = criterion(outputs, y_batch)
             loss.backward()
             optimizer.step()
-            total_loss += loss.item()
-        print(f"Epoch {epoch+1}/{epochs}, Loss: {total_loss/len(train_loader):.5f}")
+        # Test
+        model.eval()
+        x_0, y_total = next(iter(test_loader))
+        y_predict = model(x_0)
+        if x_0.size(0) == 1:
+            y_predict = y_predict.unsqueeze(0)
+        for x_batch, y_batch in test_loader:
+            if x_batch.size(0) == 0 or y_batch.size(0) == 0:
+                continue
+            outputs = model(x_batch)
+            if x_batch.size(0) == 1:
+                outputs = outputs.unsqueeze(0)
+            y_total = torch.cat((y_total, y_batch))
+            y_predict = torch.cat((y_predict, outputs))
+        avg = torch.mean(y_predict)
+        std = torch.std(y_predict)
+        min = torch.min(y_predict)
+        max = torch.max(y_predict)
+        loss = criterion(y_predict, y_total)
+        print(
+            f"Epoch {epoch+1:02}/{epochs}, Loss: {loss:.5f}, Average: {avg:.20f}, Std: {std:.20f}, Min: {min:.20f}, Max: {max:.20f}"
+        )
         # Write log
-        log_path = "log/transformer-train.log"
+        log_path = "log/mlp-train.log"
         datetime = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
         with open(log_path, "a") as f:
-            f.write(f"{datetime}, {total_loss/len(train_loader):.5f}\n")
+            f.write(f"{datetime}, {loss:.5f}, {avg:.20f}, {std:.20f}, {min:.20f}, {max:.20f}\n")
 
     # Save
     torch.save(model.state_dict(), model_path)
 
 
-model_path = "model/transformer.bin"
+model_path = "model/mlp.bin"
 if not os.path.exists(model_path):
     create_model(model_path)
 model = load_model(model_path)
 files = os.listdir("data/converted")
-files = random.sample(files, 10)
 dataset = load_dataset(files, percent=0.1)
 train_model(model, dataset)
 print()
