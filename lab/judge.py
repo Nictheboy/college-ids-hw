@@ -14,6 +14,8 @@ import pandas as pd
 import numpy as np
 import matplotlib as mpl
 from predict import Predictor
+import os
+from datetime import datetime
 
 mpl.style.use("classic")
 
@@ -140,21 +142,14 @@ def test_one_stock(stock_file_name, png_path):
     # Plot the strategy.
     plt.savePlot(png_path)
 
+    # Write log
+    with open("log/judge/judge.csv", "a") as f:
+        log = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')},{stock_name},{myTestStrategy.getResult()},{returnsAnalyzer.getCumulativeReturns()[-1] * 100},{sharpeRatioAnalyzer.getSharpeRatio(0.03)},{drawdownAnalyzer.getMaxDrawDown() * 100},{tradesAnalyzer.getCount()}\n"
+        f.write(log)
 
-test_one_stock("data/standard/stock01.csv", "log/judge/stock01.png")
-test_one_stock("data/standard/stock02.csv", "log/judge/stock02.png")
-test_one_stock("data/standard/stock03.csv", "log/judge/stock03.png")
-test_one_stock("data/standard/stock04.csv", "log/judge/stock04.png")
-test_one_stock("data/standard/stock05.csv", "log/judge/stock05.png")
-test_one_stock("data/standard/stock06.csv", "log/judge/stock06.png")
-test_one_stock("data/standard/stock07.csv", "log/judge/stock07.png")
-test_one_stock("data/standard/stock08.csv", "log/judge/stock08.png")
-test_one_stock("data/standard/stock09.csv", "log/judge/stock09.png")
-test_one_stock("data/standard/stock10.csv", "log/judge/stock10.png")
-# import os
 
-# while True:
-#     files = os.listdir("data/converted")
-#     random_file = np.random.choice(files)
-#     name = random_file.split(".")[0]
-#     test_one_stock(f"data/converted/{random_file}", f"log/judge/{name}.png")
+while True:
+    files = os.listdir("data/converted")
+    random_file = np.random.choice(files)
+    name = random_file.split(".")[0]
+    test_one_stock(f"data/converted/{random_file}", f"log/judge/random.png")
