@@ -4,7 +4,6 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import os
-import random
 
 from model import create_model, load_model, device, sequence_length
 from dataset import StockDataset
@@ -13,7 +12,7 @@ from dataset import StockDataset
 # Hyperparameters
 batch_size = 512
 epochs = 10
-lr = 0.001
+lr = 0.0001
 
 
 def load_dataset(data_names: list[str], percent=1.0):
@@ -26,9 +25,6 @@ def load_dataset(data_names: list[str], percent=1.0):
 
 
 def train_model(model, dataset):
-    avg = torch.mean(torch.tensor([y for _, y in dataset]))
-    std = torch.std(torch.tensor([y for _, y in dataset]))
-    print(f"Average: {avg:.20f}, Std: {std:.20f}")
     # Create dataloaders
     test_size = len(dataset) // 10
     train_size = len(dataset) - test_size
@@ -36,6 +32,11 @@ def train_model(model, dataset):
     train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+    # Print average and std of dataset
+    avg = torch.mean(torch.tensor([y for _, y in dataset]))
+    std = torch.std(torch.tensor([y for _, y in dataset]))
+    print(f"Average: {avg:.20f}, Std: {std:.20f}")
 
     # Training loop
     criterion = nn.BCELoss()
@@ -52,6 +53,7 @@ def train_model(model, dataset):
             loss = criterion(outputs, y_batch)
             loss.backward()
             optimizer.step()
+
         # Test
         model.eval()
         x_0, y_total = next(iter(test_loader))
@@ -74,11 +76,17 @@ def train_model(model, dataset):
         print(
             f"Epoch {epoch+1:02}/{epochs}, Loss: {loss:.5f}, Average: {avg:.20f}, Std: {std:.20f}, Min: {min:.20f}, Max: {max:.20f}"
         )
+
         # Write log
         log_path = "log/mlp-train.log"
         datetime = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
         with open(log_path, "a") as f:
             f.write(f"{datetime}, {loss:.5f}, {avg:.20f}, {std:.20f}, {min:.20f}, {max:.20f}\n")
+
+        # Failed if std is low
+        if std < 0.08:
+            print("Failed due to low std")
+            return
 
     # Save
     torch.save(model.state_dict(), model_path)
