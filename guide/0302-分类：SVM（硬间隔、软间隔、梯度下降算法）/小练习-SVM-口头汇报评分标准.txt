@@ -1,0 +1,47 @@
+小练习：SVM
+
+分数等级
+1.全部任务完成很好，口头汇报清楚完整
+	95/96/97分
+2.全部任务完成比较好，口头汇报有不清楚、不完整的地方
+	91/92/93分
+3.未口头汇报，仅仅提交obe
+	86/87/88
+4.未口头汇报，未提交obe，催促之下提交obe
+	82/83/84
+5.未口头汇报，未提交obe，催促之下未提交obe
+	0
+
+评价标准
+
+任务1：
+	硬间隔、软间隔问题建模
+	SVM hinge loss函数
+	梯度计算、梯度下降算法公式推导
+
+	口头汇报清楚上述内容
+
+任务2：线性可分数据集的分类，针对SVM self-implement示例代码
+	在ipynb里增加相关注释
+	结合代码以及注释，口头汇报清楚
+	数据结构/字段（属性）含义、目标函数、梯度计算、梯度下降算法、最终运行结果等
+
+
+任务3：线性可分数据集的分类，self-implement SVM vs. scikit learn SVM（比对分类效果，比对运行效率）
+	完成线性可分数据集的load、self-implementation SVM vs. scikit learn SVM 代码
+	比对accuracy/precision、recall、f1
+	比对运行效率（time函数运行计时）
+	可视化方式比对分类效果（可视化形式分类边界）
+
+	增加相关注释，结合代码以及注释，口头汇报清楚上述内容
+
+任务4：加分项
+	非线性可分数据集的分类（需要用到核函数），self-implement SVM vs. scikit learn SVM
+	非线性可分数据集的load、self-implementation SVM vs. scikit learn SVM 代码
+	比对accuracy/precision、recall、f1
+	比对运行效率（time函数运行计时）
+	可视化方式比对分类效果（可视化形式分类边界）
+
+	增加相关注释，结合代码以及注释，口头汇报清楚上述内容
+
+备注：选择实际数据集，适当加分

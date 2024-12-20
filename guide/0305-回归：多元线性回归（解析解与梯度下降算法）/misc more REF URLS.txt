@@ -1,0 +1,1 @@
+https://github.com/marcofavorito/ml-from-scratch/blob/master/notebooks/linear-regression.ipynb

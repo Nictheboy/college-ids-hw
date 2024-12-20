@@ -1,0 +1,40 @@
+小练习：SVD vs. NMF
+
+分数等级
+1.全部任务完成很好，口头汇报清楚完整
+	95/96/97分
+2.全部任务完成比较好，口头汇报有不清楚、不完整的地方
+	91/92/93分
+3.未口头汇报，仅仅提交obe
+	86/87/88
+4.未口头汇报，未提交obe，催促之下提交obe
+	82/83/84
+5.未口头汇报，未提交obe，催促之下未提交obe
+	0
+
+评价标准
+	任务1：compare_SVD_NMF_topic_modeling.ipynb示例代码分析
+	数据集装载，数据集描述
+	运行模型
+	运行结果解释
+	
+	增加注释的Cell，结合代码以及注释，口头汇报清楚上述内容。
+
+	任务2：compare_SVD_NMF_topic_modeling(chinese).ipynb示例代码分析
+	数据集装载，数据集描述
+	运行模型
+	运行结果解释
+
+	增加注释的Cell，结合代码以及注释，口头汇报清楚上述内容。
+
+	任务3：compare_SVD_NMF_topic_modeling(chinese).ipynb完善gensim LSI(SVD)、以及sklearn LSI(SVD)代码
+	参考compare_SVD_NMF_topic_modeling.ipynb示例，完善代码，运行通过
+	数据集装载，数据集描述
+	运行模型
+	运行结果解释
+
+	增加注释的Cell，结合代码以及注释，口头汇报清楚上述内容。
+
+	任务4：test_svd_romeo_juliet.ipynb
+	增加注释的Cell，结合代码以及注释，口头汇报清楚svd based LSI及其效果。
+

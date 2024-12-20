@@ -1,0 +1,5 @@
+apple apple apple apple apple apple apple apple apple banana  banana  grape
+apple apple apple apple apple apple apple apple banana  banana  grape grape car
+grape grape grape car car car truck  truck  truck  truck train  train  train  train  train  train  train  train  
+banana  banana  car car truck  truck  truck  truck  train  train  train  train  train  train  train  
+apple apple grape grape train  train  train

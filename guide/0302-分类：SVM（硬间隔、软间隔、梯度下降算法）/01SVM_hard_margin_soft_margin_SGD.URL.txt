@@ -1,0 +1,1 @@
+https://github.com/coding-blocks-archives/machine-learning-online-2018/blob/master/12.%20Support%20Vector%20Machines/SVM.ipynb

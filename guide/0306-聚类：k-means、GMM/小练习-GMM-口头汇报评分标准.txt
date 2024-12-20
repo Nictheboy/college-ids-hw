@@ -1,0 +1,49 @@
+小练习：GMM
+
+分数等级
+1.全部任务完成很好，口头汇报清楚完整
+	95/96/97分
+2.全部任务完成比较好，口头汇报有不清楚、不完整的地方
+	91/92/93分
+3.未口头汇报，仅仅提交obe
+	86/87/88
+4.未口头汇报，未提交obe，催促之下提交obe
+	82/83/84
+5.未口头汇报，未提交obe，催促之下未提交obe
+	0
+
+
+评价标准
+
+任务1：GMM极大似然估计公式推导
+	混合高斯模型
+	似然函数
+	对数似然函数
+	均值mu公式
+	方差sigma公式
+	混合比例pi公式
+
+	口头汇报清楚上述内容
+
+任务2：1维/2维GMM self-implement示例代码分析与运行效果（分析提供的示例代码，增加注释的Cell）
+	可以针对2维GMM self-implement示例代码
+	在ipynb里增加相关注释
+	结合代码以及注释，口头汇报清楚
+	数据结构/字段（属性）含义、迭代过程的E步骤/M步骤、最终运行结果等
+
+任务3：self-implement GMM vs. scikit learn GMM（比对聚类效果，比对运行效率）
+	完成load data、self-implementation GMM vs. scikit learn GMM代码
+	比对运行效率（time函数运行计时）
+	比对聚类效果（可视化方式，以及Within cluster sum of squares）
+
+	增加相关注释，结合代码以及注释，口头汇报清楚上述内容
+
+任务4：K-Means vs. GMM比较（不同数据集的聚类效果）
+	完成load data、K-Means vs. GMM代码
+	比对聚类效果（可视化方式，以及Within cluster sum of squares）
+
+	增加相关注释，结合代码以及注释，口头汇报清楚上述内容
+
+备注：选择实际数据集，适当加分
+
+备注：Within cluster sum of squares：The sum of the squared deviations from each observation and the cluster centroid.
