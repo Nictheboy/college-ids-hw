@@ -22,7 +22,7 @@ def describe(df: DataFrame, column: str) -> tuple[str, str, list]:
 
 def plot(df: DataFrame, column: str, img: str):
     plt.figure(figsize=(5, 3))
-    df[column].plot.hist(bins=50, alpha=0.5)
+    df[column].plot.hist(bins=50, alpha=0.5, color="black")
     plt.title(column)
     plt.savefig(img)
     plt.close()

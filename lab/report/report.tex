@@ -35,6 +35,7 @@
 \usepackage{amsmath}
 \usepackage{booktabs} % For professional looking tables
 \usepackage{array} % For custom column alignment
+\usepackage{graphicx}
 
 %% For including figures, graphicx.sty has been loaded in
 %% elsarticle.cls. If you prefer to use the old commands
@@ -97,14 +98,19 @@
 
 \section{简述}
 对金融数据的分析，尤其是对股票价格的直接预测，由于其直接的经济回报，一直是金融领域和机器学习领域的研究热点。
-传统的分析方法有很多，比如基于技术指标的分析等，但是这些方法往往需要人工构造选取特征，很难自主从数据中学习特征。
-与此同时，如何根据分析结果进行量化交易也是一个重要的问题。直接使用标注了交易信号的数据进行监督学习，
-虽然可以学习到一个在历史数据上表现良好的模型，但是在未来数据上的表现往往取决于标注的质量。
-总的来说，基于技术指标和交易信号标注的方法虽然可以达到良好的效果，但训练过程中需要人工干预，难以挖掘数据中的潜在规律。
-何况，我本人对股票交易完全是一窍不通啊！
+传统的分析方法有很多，比如基于技术指标的分析等，但是这些方法往往需要人工构造选取特征，模型很难自主从数据中学习特征。
 
-使用深度学习方法直接对股票价格进行预测，可以避免这些问题，因此在近年来受到了广泛的关注。本实验中，我借助
-PyTorch 深度学习框架，训练了一个基于多层神经网络（MLP）的股票价格预测模型，尝试对股票下一日的开盘价进行预测，
+与此同时，如何根据分析结果进行量化交易也是一个重要的问题。直接使用标注了交易信号的数据进行监督学习，
+虽然可以得到在历史数据上表现良好的模型，但是在未来数据上的表现往往取决于标注的质量。
+总的来说，基于技术指标和交易信号标注的方法虽然可以达到良好的效果，但训练过程中需要人工干预，难以挖掘数据中的潜在规律。
+
+使用深度学习方法直接对股票价格进行预测，可以避免这些问题，因此在近年来受到了广泛的关注。
+然而，由于股票价格数据本身的复杂性、过低的信噪比和博弈的性质，直接对股票价格进行预测是一个非常困难甚至本质上不可解的问题，
+目前尚没有一个完全有效的解决方案。我作为一个普通的大二学生当然没有办法很好的解决这些问题，这些问题也因此构成了本次实验的主要困难。
+
+由于我本人对金融了解甚微，我没有尝试对数据进行特征工程和交易信号标注，而是直接使用了数据中的股价信息训练预测模型。
+同时，由于我对神经网络的了解也有限，所以我没有采用更为复杂的模型，而是使用了一个简单的多层神经网络（MLP）。本实验中，我借助
+PyTorch 深度学习框架，训练了一个基于多层神经网络（MLP）的股票价格预测模型，尝试对股票下一日的价格进行预测，
 并直接使用预测结果进行量化交易。
 
 \section{环境搭建}
@@ -181,8 +187,9 @@ tushare 平台下载了全部 2010 年以前上市的股票的日线数据（总
 模拟结束时的总剩余金额、总收益率、夏普指数、最大回撤和总交易次数。
 
 \section{实验结果}
-我对最终得到的模型进行了200次评测，并编写了\texttt{result\_statistic.py}对评测结果进行了统计。统计数据如下。表中的平均值和标准差统计时已除去离群值。
-可以看到，总的来说，本模型很好的预测了数据集中的股价。然而，虽然数据很漂亮，但实际上这里存在一个巨大的问题：
+我对最终得到的模型进行了200次评测，并编写了\texttt{result\_statistic.py}对评测结果进行了统计，统计结果如表\ref*{tab:performance1} 所示。
+表中的平均值和标准差统计时已除去离群值。由于这些股票数据的跨度多为10年左右，因此这里的回报率是10年的回报率。
+可以看到，总的来说，本模型很好地进行了盈利。然而，虽然数据很漂亮，但实际上这里存在一个巨大的问题：
 这里本质上是在测试集上运行测试。
 \begin{table}[h!]
        \centering
@@ -194,9 +201,29 @@ tushare 平台下载了全部 2010 年以前上市的股票的日线数据（总
               \textbf{Max Drawdown} & $41.40\%\pm 12.27\%$      \\
               \textbf{Trade Count}  & $601.32 \pm 57.92$        \\ \midrule
        \end{tabular}
-       \caption{测试结果}
-       \label{tab:performance}
+       \caption{评测结果一}
+       \label{tab:performance1}
 \end{table}
+
+为了纠正在训练集上测试的错误，我收集了新的数据并进行了测试。这些数据来自2010年到2011年之间上市的股票。
+我们采用同样的方法对数据进行了处理得到表\ref*{tab:performance2} ，并发现，虽然收益率远不如在测试集上的表现，但依然是盈利的。
+也就是说，这个模型在未知数据上也有一定的泛化能力。这一实验是成功的。
+\begin{table}[h!]
+       \centering
+       \begin{tabular}{@{}lcc@{}}
+              \toprule
+              \textbf{}             & \textbf{Avg ± Std}      \\ \midrule
+              \textbf{Returns}      & $159.38\% \pm 196.94\%$ \\
+              \textbf{Sharpe Ratio} & $0.27 \pm 0.22$         \\
+              \textbf{Max Drawdown} & $60.02\%\pm 13.24\%$    \\
+              \textbf{Trade Count}  & $633.67 \pm 55.11$      \\ \midrule
+       \end{tabular}
+       \caption{评测结果二}
+       \label{tab:performance2}
+\end{table}
+
+评测一的原始数据位于\texttt{log/judge/judge.csv}，评测二的原始数据位于\texttt{log/judge/judge\_test.csv}。
+同时，两次评测的各指标的分布图也分别于\ref{sec:performance1} 和\ref{sec:performance2} 给出。
 
 \section{总结}
 我使用了 PyTorch 深度学习框架训练了一个基于多层神经网络（MLP）的股票价格预测模型。
@@ -216,6 +243,61 @@ tushare 平台下载了全部 2010 年以前上市的股票的日线数据（总
 %% The Appendices part is started with the command \appendix;
 %% appendix sections are then done as normal sections
 \appendix
+\newpage
+
+\section{评测结果一}
+\label{sec:performance1}
+\begin{figure}[h!]
+       \centering
+       \includegraphics[width=0.37\textwidth]{img/1/Returns.png} % 指定图像文件名和宽度
+       \caption{总回报的分布} % 添加图片标题
+       % \label{fig:example} % 给图片添加标签用于引用
+\end{figure}
+\begin{figure}[h!]
+       \centering
+       \includegraphics[width=0.37\textwidth]{img/1/Sharpe Ratio.png} % 指定图像文件名和宽度
+       \caption{夏普系数的分布} % 添加图片标题
+       % \label{fig:example} % 给图片添加标签用于引用
+\end{figure}
+\begin{figure}[h!]
+       \centering
+       \includegraphics[width=0.37\textwidth]{img/1/Max Drawdown.png} % 指定图像文件名和宽度
+       \caption{最大回撤的分布} % 添加图片标题
+       % \label{fig:example} % 给图片添加标签用于引用
+\end{figure}
+\begin{figure}[h!]
+       \centering
+       \includegraphics[width=0.37\textwidth]{img/1/Trade Count.png} % 指定图像文件名和宽度
+       \caption{总交易次数的分布} % 添加图片标题
+       % \label{fig:example} % 给图片添加标签用于引用
+\end{figure}
+
+\section{评测结果二}
+\label{sec:performance2}
+\begin{figure}[h!]
+       \centering
+       \includegraphics[width=0.37\textwidth]{img/2/Returns.png} % 指定图像文件名和宽度
+       \caption{总回报的分布} % 添加图片标题
+       % \label{fig:example} % 给图片添加标签用于引用
+\end{figure}
+\begin{figure}[h!]
+       \centering
+       \includegraphics[width=0.37\textwidth]{img/2/Sharpe Ratio.png} % 指定图像文件名和宽度
+       \caption{夏普系数的分布} % 添加图片标题
+       % \label{fig:example} % 给图片添加标签用于引用
+\end{figure}
+\begin{figure}[h!]
+       \centering
+       \includegraphics[width=0.37\textwidth]{img/2/Max Drawdown.png} % 指定图像文件名和宽度
+       \caption{最大回撤的分布} % 添加图片标题
+       % \label{fig:example} % 给图片添加标签用于引用
+\end{figure}
+\begin{figure}[h!]
+       \centering
+       \includegraphics[width=0.37\textwidth]{img/2/Trade Count.png} % 指定图像文件名和宽度
+       \caption{总交易次数的分布} % 添加图片标题
+       % \label{fig:example} % 给图片添加标签用于引用
+\end{figure}
 
 %% If you have bibdatabase file and want bibtex to generate the
 %% bibitems, please use
