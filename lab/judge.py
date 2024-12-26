@@ -143,13 +143,18 @@ def test_one_stock(stock_file_name, png_path):
     plt.savePlot(png_path)
 
     # Write log
-    with open("log/judge/judge.csv", "a") as f:
+    # with open("log/judge/judge.csv", "a") as f:
+    with open("log/judge/judge_test.csv", "a") as f:
         log = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')},{stock_name},{myTestStrategy.getResult()},{returnsAnalyzer.getCumulativeReturns()[-1] * 100},{sharpeRatioAnalyzer.getSharpeRatio(0.03)},{drawdownAnalyzer.getMaxDrawDown() * 100},{tradesAnalyzer.getCount()}\n"
         f.write(log)
 
 
-while True:
-    files = os.listdir("data/converted")
-    random_file = np.random.choice(files)
-    name = random_file.split(".")[0]
-    test_one_stock(f"data/converted/{random_file}", f"log/judge/random.png")
+# while True:
+#     files = os.listdir("data/converted")
+#     random_file = np.random.choice(files)
+#     name = random_file.split(".")[0]
+#     test_one_stock(f"data/converted/{random_file}", f"log/judge/random.png")
+
+files = os.listdir("data/converted_test")
+for file in files:
+    test_one_stock(f"data/converted_test/{file}", f"log/judge/random.png")

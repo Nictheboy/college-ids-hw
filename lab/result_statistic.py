@@ -20,7 +20,8 @@ def describe(df: DataFrame, column: str) -> tuple[str, str, list]:
 
 
 def main():
-    log = pd.read_csv("log/judge/judge.csv")
+    # log = pd.read_csv("log/judge/judge.csv")
+    log = pd.read_csv("log/judge/judge_test.csv")
     columns = ["Total", "Returns", "Sharpe Ratio", "Max Drawdown", "Trade Count"]
     descriptions = [describe(log, column) for column in columns]
     rows = 3 + max([len(description[2]) for description in descriptions])

@@ -9,8 +9,11 @@ pro = ts.pro_api()
 # Load stock list data
 stock_list = pd.read_csv("data/stock_list.csv", sep=",", dtype="str")
 
-# Select stocks that are listed before 2010
-stock_list = stock_list[stock_list["list_date"] <= "20100101"]
+# Select stocks that are listed before 2010 for training
+# stock_list = stock_list[stock_list["list_date"] <= "20100101"]
+# Select stocks that are listed between 2010 and 2011 for testing
+stock_list = stock_list[stock_list["list_date"] > "20100101"]
+stock_list = stock_list[stock_list["list_date"] <= "20110101"]
 stock_ids = stock_list["ts_code"].values
 
 
@@ -20,7 +23,8 @@ def down_load_one_stock(stock_id):
     pro = ts.pro_api()
 
     df = pro.query("daily", ts_code=stock_id, start_date="20100101", end_date="20230101")
-    stock_file_name = f"data/download/{stock_id}.csv"
+    # stock_file_name = f"data/download/{stock_id}.csv"
+    stock_file_name = f"data/download_test/{stock_id}.csv"
     df.to_csv(stock_file_name)
 
 

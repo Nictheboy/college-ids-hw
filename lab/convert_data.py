@@ -30,8 +30,14 @@ def read_write_CSV(from_file, to_file):
     file.close()
 
 
-# For all files in data/download
-for f in os.listdir("data/download"):
-    if os.path.isfile(os.path.join("data/download", f)):
+# # For all files in data/download
+# for f in os.listdir("data/download"):
+#     if os.path.isfile(os.path.join("data/download", f)):
+#         print(f)
+#         read_write_CSV("data/download/" + f, "data/converted/" + f)
+
+# For all files in data/download_test
+for f in os.listdir("data/download_test"):
+    if os.path.isfile(os.path.join("data/download_test", f)):
         print(f)
-        read_write_CSV("data/download/" + f, "data/converted/" + f)
+        read_write_CSV("data/download_test/" + f, "data/converted_test/" + f)
