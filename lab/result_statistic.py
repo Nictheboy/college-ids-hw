@@ -1,5 +1,6 @@
 import pandas as pd
 from pandas import DataFrame
+import matplotlib.pyplot as plt
 
 
 def describe(df: DataFrame, column: str) -> tuple[str, str, list]:
@@ -19,9 +20,16 @@ def describe(df: DataFrame, column: str) -> tuple[str, str, list]:
     return description, description_adj, outliers[column].tolist()
 
 
-def main():
-    # log = pd.read_csv("log/judge/judge.csv")
-    log = pd.read_csv("log/judge/judge_test.csv")
+def plot(df: DataFrame, column: str, img: str):
+    plt.figure(figsize=(5, 3))
+    df[column].plot.hist(bins=50, alpha=0.5)
+    plt.title(column)
+    plt.savefig(img)
+    plt.close()
+
+
+def analyze(filename: str, img_prefix: str):
+    log = pd.read_csv(filename)
     columns = ["Total", "Returns", "Sharpe Ratio", "Max Drawdown", "Trade Count"]
     descriptions = [describe(log, column) for column in columns]
     rows = 3 + max([len(description[2]) for description in descriptions])
@@ -40,6 +48,15 @@ def main():
     print()
     print(statistic)
     print()
+
+    # Draw distributions
+    for column in columns:
+        plot(log, column, f"{img_prefix}{column}.png")
+
+
+def main():
+    analyze("log/judge/judge.csv", "report/img/1/")
+    analyze("log/judge/judge_test.csv", "report/img/2/")
 
 
 if __name__ == "__main__":
